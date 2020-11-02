@@ -1,7 +1,5 @@
 const express = require("express");
 const router = express.Router();
-const gravatar = require("gravatar");
-const normalize = require("normalize-url");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const userModel = require("../models/user");
@@ -21,48 +19,25 @@ router.post("/signup", (req, res) => {
           message: "Email taken",
         });
       } else {
-        bcrypt.hash(password, 10, (err, hash) => {
-          if (err) {
-            return res.status(408).json({
+        const newUser = new userModel({
+          name,
+          email,
+          password,
+        });
+
+        newUser
+          .save()
+          .then((user) => {
+            res.status(200).json({
+              message: "user created",
+              userInfo: user,
+            });
+          })
+          .catch((err) => {
+            res.status(500).json({
               error: err,
             });
-          } else {
-            const avatar = normalize(
-              gravatar.url(email, {
-                s: "200",
-                r: "pg",
-                d: "mm",
-              }),
-              { forceHttps: true }
-            );
-            // const avatar = gravatar.url(email, {
-            //   s: "200", //size
-            //   r: "pg", //rating
-            //   d: "mm", //default
-            // });
-
-            const user = new userModel({
-              email,
-              name,
-              avatar,
-              password: hash,
-            });
-
-            user
-              .save()
-              .then((user) => {
-                res.status(200).json({
-                  message: "User created",
-                  userInfo: user,
-                });
-              })
-              .catch((err) => {
-                res.status(500).json({
-                  error: err,
-                });
-              });
-          }
-        });
+          });
       }
     })
     .catch((err) => {
@@ -87,23 +62,41 @@ router.post("/login", (req, res) => {
           messsage: "Not a registered user",
         });
       } else {
-        bcrypt.compare(password, user.password, (err, result) => {
-          if (err || result === false) {
+        user.comparePassword(password, (err, isMatch) => {
+          console.log(isMatch);
+          if (err || !isMatch) {
             return res.status(400).json({
-              message: "Password incorrect",
+              errors: "Password Incorrect",
             });
           } else {
             const token = jwt.sign(
-              { userID: user._id, email: user.email },
-              "secret",
+              { userID: user._id, email: user.email, name: user.name },
+              process.env.SECRET_KEY,
               { expiresIn: "1d" }
             );
             res.status(200).json({
-              message: "User logged in",
+              message: "user logged in",
               token,
             });
           }
         });
+        // bcrypt.compare(password, user.password, (err, result) => {
+        //   if (err || result === false) {
+        //     return res.status(400).json({
+        //       message: "Password incorrect",
+        //     });
+        //   } else {
+        //     const token = jwt.sign(
+        //       { userID: user._id, email: user.email },
+        //       "secret",
+        //       { expiresIn: "1d" }
+        //     );
+        //     res.status(200).json({
+        //       message: "User logged in",
+        //       token,
+        //     });
+        //   }
+        // });
       }
     })
     .catch((err) => {
