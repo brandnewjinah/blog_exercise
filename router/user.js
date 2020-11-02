@@ -3,6 +3,7 @@ const router = express.Router();
 const gravatar = require("gravatar");
 const normalize = require("normalize-url");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const userModel = require("../models/user");
 
 // @route POST http://localhost:5000/user/signup
@@ -75,6 +76,41 @@ router.post("/signup", (req, res) => {
 // @desc Login user / return jwt
 // @access Public
 
-router.post("/login", (req, res) => {});
+router.post("/login", (req, res) => {
+  const { email, password } = req.body;
+
+  userModel
+    .findOne({ email })
+    .then((user) => {
+      if (!user) {
+        return res.status(400).json({
+          messsage: "Not a registered user",
+        });
+      } else {
+        bcrypt.compare(password, user.password, (err, result) => {
+          if (err || result === false) {
+            return res.status(400).json({
+              message: "Password incorrect",
+            });
+          } else {
+            const token = jwt.sign(
+              { userID: user._id, email: user.email },
+              "secret",
+              { expiresIn: "1d" }
+            );
+            res.status(200).json({
+              message: "User logged in",
+              token,
+            });
+          }
+        });
+      }
+    })
+    .catch((err) => {
+      res.status(500).json({
+        error: err,
+      });
+    });
+});
 
 module.exports = router;
