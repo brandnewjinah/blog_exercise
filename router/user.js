@@ -4,6 +4,8 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
 const checkAuth = passport.authenticate("jwt", { session: false });
+const sgMail = require("@sendgrid/mail");
+sgMail.setApiKey(process.env.MAIL_KEY);
 const userModel = require("../models/user");
 
 // @route POST http://localhost:5000/user/signup
@@ -21,25 +23,56 @@ router.post("/signup", (req, res) => {
           message: "Email taken",
         });
       } else {
-        const newUser = new userModel({
-          name,
-          email,
-          password,
+        const payload = { name, email, password };
+        const token = jwt.sign(payload, process.env.EMAIL_CONFIRMATION_KEY, {
+          expiresIn: "15m",
         });
 
-        newUser
-          .save()
-          .then((user) => {
-            res.status(200).json({
-              message: "user created",
-              userInfo: user,
+        const emailData = {
+          from: process.env.MAIL_FROM,
+          to: email,
+          subject: "Account activation link",
+          html: `
+            <h1>Please use the following to activate your account</h1>
+            <p>http://localhost:3000/users/activate/${token}</p>
+            <hr />
+            <p>This email may containe sensetive information</p>
+            <p>http://localhost:3000</p>
+          `,
+        };
+
+        sgMail
+          .send(emailData)
+          .then(() => {
+            return res.status(200).json({
+              message: `Email has been sent to ${email}`,
             });
           })
           .catch((err) => {
-            res.status(500).json({
-              error: err,
+            res.status(400).json({
+              error: err.message,
             });
           });
+
+        // const newUser = new userModel({
+        //   name,
+        //   email,
+        //   password,
+        // });
+
+        // newUser
+        //   .save()
+        //   .then((user) => {
+        //     res.status(200).json({
+        //       message: "user created",
+        //       userInfo: user,
+        //     });
+        //   })
+        //   .catch((err) => {
+        //     res.status(500).json({
+        //       error: err,
+        //     });
+        //   });
       }
     })
     .catch((err) => {
