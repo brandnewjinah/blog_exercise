@@ -44,4 +44,44 @@ router.post("/", checkAuth, (req, res) => {
     .catch((err) => res.status(500).json(err));
 });
 
+// @route GET http://localhost:5000/profile
+// @desc Get current user profile
+// @access Private
+
+router.get("/", checkAuth, (req, res) => {
+  profileModel
+    .findOne({ user: req.user.id })
+    .then((profile) => {
+      if (!profile) {
+        return res.json({
+          message: "Profile doesn't exist",
+        });
+      } else {
+        res.json(profile);
+      }
+    })
+    .catch((err) => res.status(500).json(err));
+});
+
+// @route DELETE http://localhost:5000/profile
+// @desc delete current user profile
+// @access Private
+
+router.delete("/", checkAuth, (req, res) => {
+  profileModel
+    .findOneAndDelete({ user: req.user.id })
+    .then((profile) => {
+      if (!profile) {
+        return res.json({
+          message: "Please create profile first",
+        });
+      } else {
+        res.json({
+          message: "Deleted your profile",
+        });
+      }
+    })
+    .catch((err) => res.status(500).json(err));
+});
+
 module.exports = router;
