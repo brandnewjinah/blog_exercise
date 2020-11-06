@@ -9,7 +9,7 @@ sgMail.setApiKey(process.env.MAIL_KEY);
 const userModel = require("../models/user");
 
 // @route POST http://localhost:5000/user/signup
-// @desc Register user
+// @desc Register user / Send email
 // @access Public
 
 router.post("/signup", (req, res) => {
@@ -205,6 +205,74 @@ router.get("/current", checkAuth, (req, res) => {
       }
     })
     .catch((err) => console.log(err));
+});
+
+// @route PUT http://localhost:5000/user/forgotpw
+// @desc Forgot password/send email
+// @access Public
+
+router.put("/forgotpw", (req, res) => {
+  //get user email
+  const { email } = req.body;
+
+  userModel
+    .findOne({ email }) //look for email first
+    .then((user) => {
+      if (!user) {
+        return res.status(404).json({
+          message: "Email not found",
+        });
+      } else {
+        //create token
+        const token = jwt.sign(
+          { _id: user._id },
+          process.env.PASSWORD_CONFIRMATION,
+          { expiresIn: "20m" }
+        );
+
+        //email reset link
+        const emailData = {
+          from: process.env.MAIL_FROM,
+          to: email,
+          subject: "Password Reset Link",
+          html: `
+            <h1>Please use the following link to reset your password</h1>
+            <p>${process.env.CLIENT_URL}/users/password/reset/${token}</p>
+            <hr />
+            <p>This email may contain sensetive information</p>
+            <p>${process.env.CLIENT_URL}</p>
+          `,
+        };
+
+        //email has been sent
+        return user
+          .updateOne({ resetPasswordLink: token })
+          .then((user) => {
+            sgMail
+              .send(emailData)
+              .then(() => {
+                return res.status(200).json({
+                  message: `Email has been sent to ${email}. Follow the instruction to activate your account`,
+                });
+              })
+              .catch((err) => {
+                return res.status(404).json({
+                  message: err.message,
+                });
+              });
+          })
+          .catch((err) => {
+            return res.status(404).json({
+              message: err.message,
+            });
+          });
+      }
+    })
+    .catch((err) => {
+      return res.status(400).json({
+        message: "Error",
+      });
+    });
 });
 
 module.exports = router;

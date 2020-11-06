@@ -24,7 +24,10 @@ const userSchema = mongoose.Schema(
       type: String,
       default: "user",
     },
-    resetPasswordLink: "",
+    resetPasswordLink: {
+      data: String,
+      default: "",
+    },
   },
 
   //data 가 생성될 때 날짜가 자동으로 생성되도록
