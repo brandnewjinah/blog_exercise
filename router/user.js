@@ -6,6 +6,7 @@ const passport = require("passport");
 const checkAuth = passport.authenticate("jwt", { session: false });
 const sgMail = require("@sendgrid/mail");
 sgMail.setApiKey(process.env.MAIL_KEY);
+const _ = require("lodash");
 const userModel = require("../models/user");
 
 // @route POST http://localhost:5000/user/signup
@@ -273,6 +274,57 @@ router.put("/forgotpw", (req, res) => {
         message: "Error",
       });
     });
+});
+
+// @route PUT http://localhost:5000/user/changepw
+// @desc Change password
+// @access Private
+
+router.put("/changepw", (req, res) => {
+  const { resetPasswordLink, newPassword } = req.body;
+
+  if (resetPasswordLink) {
+    jwt.verify(
+      resetPasswordLink,
+      process.env.PASSWORD_CONFIRMATION,
+      (err, decoded) => {
+        if (err) {
+          return res.status(400).json({
+            error: "Expired link. Try again",
+          });
+        } else {
+          userModel
+            .findOne({ resetPasswordLink })
+            .then((user) => {
+              const updateFields = {
+                password: newPassword,
+                resetPasswordLink: "",
+              };
+
+              user = _.extend(user, updateFields);
+
+              user
+                .save()
+                .then(() => {
+                  res.status(200).json({
+                    message: "Password successfully changed",
+                  });
+                })
+                .catch((err) => {
+                  return res.status(400).json({
+                    error: "Error resetting password",
+                  });
+                });
+            })
+            .catch((err) => {
+              return res.status(400).json({
+                error: "Something went wrong",
+              });
+            });
+        }
+      }
+    );
+  }
 });
 
 module.exports = router;
