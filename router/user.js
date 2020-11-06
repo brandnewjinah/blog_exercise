@@ -82,6 +82,46 @@ router.post("/signup", (req, res) => {
     });
 });
 
+// @route POST http://localhost:5000/user/activation
+// #desc Activation account / confirm email
+// @access Private
+
+router.post("/activation", (req, res) => {
+  const { token } = req.body;
+
+  if (token) {
+    jwt.verify(token, process.env.EMAIL_CONFIRMATION_KEY, (err, decoded) => {
+      if (err) {
+        return res.status(401).json({
+          errors: "Expired link. Signup again",
+        });
+      } else {
+        const { name, email, password } = jwt.decode(token);
+
+        const newUser = new userModel({
+          name,
+          email,
+          password,
+        });
+
+        newUser
+          .save()
+          .then((user) => {
+            res.status(200).json({
+              message: "user created",
+              userInfo: user,
+            });
+          })
+          .catch((err) => {
+            res.status(500).json({
+              error: err,
+            });
+          });
+      }
+    });
+  }
+});
+
 // @route POST http://localhost:5000/user/login
 // @desc Login user / return jwt
 // @access Public
