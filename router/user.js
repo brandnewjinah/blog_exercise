@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const passport = require("passport");
+const checkAuth = passport.authenticate("jwt", { session: false });
 const userModel = require("../models/user");
 
 // @route POST http://localhost:5000/user/signup
@@ -70,7 +72,7 @@ router.post("/login", (req, res) => {
             });
           } else {
             const token = jwt.sign(
-              { userID: user._id, email: user.email, name: user.name },
+              { id: user._id, email: user.email, name: user.name },
               process.env.SECRET_KEY,
               { expiresIn: "1d" }
             );
@@ -104,6 +106,32 @@ router.post("/login", (req, res) => {
         error: err,
       });
     });
+});
+
+//로그인 후 토큰으로 사용자 정보 가져오기
+// @route GET http://localhost:5000/user/current
+// @desc Return current user
+// @access Private
+
+router.get("/current", checkAuth, (req, res) => {
+  // res.json({
+  //   id: req.user.id,
+  //   name: req.user.name,
+  //   email: req.user.email,
+  // });
+
+  userModel
+    .findById(req.user.id)
+    .then((user) => {
+      if (user) {
+        return res.status(200).json(user);
+      } else {
+        res.status(400).json({
+          message: "user not found",
+        });
+      }
+    })
+    .catch((err) => console.log(err));
 });
 
 module.exports = router;

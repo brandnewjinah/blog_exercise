@@ -9,6 +9,7 @@ const userRoute = require("./router/user");
 //req middleware
 const morgan = require("morgan");
 const bodyParser = require("body-parser");
+const passport = require("passport");
 
 require("./config/db");
 
@@ -16,6 +17,10 @@ require("./config/db");
 app.use(morgan("dev"));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
+app.use(passport.initialize());
+
+//passport config
+require("./config/passport")(passport);
 
 //use router
 app.use("/user", userRoute);
