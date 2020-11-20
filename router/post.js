@@ -128,4 +128,100 @@ router.delete("/unlike/:post_id", checkAuth, (req, res) => {
     );
 });
 
+//comment add
+// @route POST http://localhost:5000/post/comment/:post_id
+// @desc Add comment to the post
+// @access Private
+router.post("/comment/:post_id", checkAuth, (req, res) => {
+  const newComment = {
+    user: req.user.id,
+    text: req.body.text,
+    name: req.user.name,
+    avatar: req.user.avatar,
+  };
+
+  postModel
+    .findById(req.params.post_id)
+    .then((post) => {
+      post.comments.unshift(newComment);
+      post.save().then((post) => res.json(post));
+    })
+    .catch((err) => res.status(404).json({ postnotfound: "No post found" }));
+});
+
+//comment delete
+// @route DELETE http://localhost:5000/post/comment/:post_id
+// @desc Delete comment to the post
+// @access Private
+// router.delete("/comment/:post_id/:commnet_id", checkAuth, (req, res) => {
+//   postModel
+//     .findById(req.params.post_id)
+//     .then((post) => {
+//       if (
+//         post.comments.filter(
+//           (comment) => comment._id.toString() === req.params.comment_id
+//         ).length === 0
+//       ) {
+//         return res
+//           .status(404)
+//           .json({ commentnotexist: "Comment does not exist" });
+//       }
+//       const removeIndex = post.comments
+//         .map((item = item._id.toString()))
+//         .indexOf(req.params.comment_id);
+
+//       //splice comment out of array
+//       post.comments.splice(removeIndex, 1);
+//       post.save().then((post) => res.json(post));
+//     })
+//     .catch((err) =>
+//       res.status(404).json({
+//         postnotfound: "No post found",
+//       })
+//     );
+
+//   postModel.findById(req.params.post_id).then((post) => {
+//     if (
+//       post.comments.filter(
+//         (comment) => comment._id.toString() === req.params.comment_id
+//       ).length === 0
+//     ) {
+//       return res
+//         .status(404)
+//         .json({ commentnotexists: "Comment does not exist" });
+//     }
+//     // get remove index
+//     const removeIndex = post.comments
+//       .map((item) => item._id.toString())
+//       .indexOf(req.params.comment_id);
+//     // splice comment out of array
+//     post.comments.splice(removeIndex, 1);
+//     post.save().then((post) => res.json(post));
+//   });
+// });
+
+// @route DELETE http://localhost:5000/post/comment/:post_id/:comment_id
+// @desc Remove comment from post
+// @access Private
+router.delete("/comment/:post_id/:comment_id", checkAuth, (req, res) => {
+  postModel.findById(req.params.post_id).then((post) => {
+    if (
+      post.comments.filter(
+        (comment) => comment._id.toString() === req.params.comment_id
+      ).length === 0
+    ) {
+      return res.status(400).json({
+        message: "Comment does not exist",
+      });
+    } else {
+      const removeIndex = post.comments
+        .map((item) => item._id.toString())
+        .indexOf(req.params.comment_id);
+
+      post.comments.splice(removeIndex, 1);
+      post.save().then((post) => res.status(200).json(post));
+    }
+  });
+});
+
 module.exports = router;
