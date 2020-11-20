@@ -70,4 +70,62 @@ router.delete("/:id", checkAuth, (req, res) => {
     );
 });
 
+// @route POST http://localhost:5000/post/like/:post_id
+// @desc Like post
+// @access Private
+router.post("/like/:post_id", checkAuth, (req, res) => {
+  postModel
+    .findById(req.params.post_id)
+    .then((post) => {
+      if (
+        post.likes.filter((like) => like.user.toString() === req.user.id)
+          .length > 0
+      ) {
+        return res
+          .status(400)
+          .json({ alreadyliked: "user already liked this post" });
+      }
+      post.likes.unshift({ user: req.user.id });
+      post.save().then((post) => res.json(post));
+    })
+    .catch((err) =>
+      res.status(404).json({
+        postnotfound: "No post found",
+      })
+    );
+});
+
+// @route POST http://localhost:5000/post/unlike/:post_id
+// @desc Unlike post
+// @access Private
+router.delete("/unlike/:post_id", checkAuth, (req, res) => {
+  postModel
+    .findById(req.params.post_id)
+    .then((post) => {
+      if (
+        post.likes.filter((like) => like.user.toString() === req.user.id)
+          .length === 0
+      ) {
+        return res.status(400).json({
+          notliked: "You have not liked this post",
+        });
+      }
+      // get remove Index
+      const removeIndex = post.likes
+        .map((item) => item.user.toString())
+        .indexOf(req.user.id);
+
+      //splice out of array
+      post.likes.splice(removeIndex, 1);
+
+      //save
+      post.save().then((post) => res.json(post));
+    })
+    .catch((err) =>
+      res.status(404).json({
+        postnotfound: "No post found",
+      })
+    );
+});
+
 module.exports = router;
